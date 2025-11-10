@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart';
 import 'package:logger/logger.dart';
+import 'package:task_management_provider/app.dart';
 import 'package:task_management_provider/ui/controllers/auth_controller.dart';
+import 'package:task_management_provider/ui/screens/login_screen.dart';
 
 class ApiCaller {
   static final Logger _logger = Logger();
@@ -14,9 +16,10 @@ class ApiCaller {
 
       _logRequest(url);
 
-      Response response = await get(uri,headers: {
-        'token':AuthController.accessToken ?? ''
-      });
+      Response response = await get(
+        uri,
+        headers: {'token': AuthController.accessToken ?? ''},
+      );
 
       _logResponse(url, response);
 
@@ -28,6 +31,14 @@ class ApiCaller {
           isSuccess: true,
           responseCode: statusCode,
           responseData: decodedData,
+        );
+      } else if (statusCode == 401) {
+        _moveToLogin();
+        return ApiResponse(
+          isSuccess: false,
+          responseCode: statusCode,
+          errorMessage: 'Un-authorize',
+          responseData: null,
         );
       } else {
         final decodedData = jsonDecode(response.body);
@@ -77,6 +88,14 @@ class ApiCaller {
           responseCode: statusCode,
           responseData: decodedData,
         );
+      } else if (statusCode == 401) {
+        _moveToLogin();
+        return ApiResponse(
+          isSuccess: false,
+          responseCode: statusCode,
+          errorMessage: 'Un-authorize',
+          responseData: null,
+        );
       } else {
         final decodedData = jsonDecode(response.body);
         return ApiResponse(
@@ -108,6 +127,15 @@ class ApiCaller {
       'URL => $url\n'
       'Status Code: ${response.statusCode}\n'
       'Body: ${response.body}',
+    );
+  }
+
+  static void _moveToLogin() async {
+    await AuthController.clearUserData();
+    Navigator.pushNamedAndRemoveUntil(
+      TaskManagerApp.navigator.currentContext!,
+      LoginScreen.name,
+      (predicate) => false,
     );
   }
 }
